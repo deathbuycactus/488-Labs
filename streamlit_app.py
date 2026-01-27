@@ -52,4 +52,19 @@ else:
         # Stream the response to the app using `st.write_stream`.
         st.write_stream(stream)
 
-pg = st.navigation([st.Page("Lab1.py"), st.Page("Lab2.py"), st.Page("Lab3.py"), st.Page("Lab4.py"), st.Page("Lab5.py"), st.Page("Lab6.py"), st.Page("Lab7.py"), st.Page("Lab8.py"), st.Page("Lab9.py"), st.Page("Lab10.py")])
+pg = st.navigation({
+    "Labs": [
+        st.Page("Lab1.py", title="Lab 1"),
+        st.Page("Lab2.py", title="Lab 2"),
+        st.Page("Lab2.py", title="Lab 3"),
+        st.Page("Lab2.py", title="Lab 4"),
+        st.Page("Lab2.py", title="Lab 5"),
+        st.Page("Lab2.py", title="Lab 6"),
+        st.Page("Lab2.py", title="Lab 7"),
+        st.Page("Lab2.py", title="Lab 8"),
+        st.Page("Lab2.py", title="Lab 9"),
+        st.Page("Lab2.py", title="Lab 10")
+        ]
+    }
+)    
+pg.run()

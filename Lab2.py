@@ -28,26 +28,24 @@ uploaded_file = st.file_uploader(
     "Upload a document (.txt or .md)", type=("txt", "md")
 )
 
-# Ask the user for a question via `st.text_area`.
-question = st.text_area(
-    "Now ask a question about the document!",
-    placeholder="Can you give me a short summary?",
-    disabled=not uploaded_file,
-)
-
 add_selectbox = st.sidebar.selectbox(
     "How would you like the document summarized?:"
     ("In 100 words", "In 2 connecting paragraphs", "In 5 bullet points")
 )
 
-if uploaded_file and question:
+if st.checkbox("Advanced Model"):
+    st.write("Advanced Model: ON")
+else:
+    st.write("Advanced Model: OFF")
+
+if uploaded_file and add_selectbox:
 
     # Process the uploaded file and question.
     document = uploaded_file.read().decode()
     messages = [
         {
             "role": "user",
-            "content": f"Here's a document: {document} \n\n---\n\n {question}",
+            "content": f"Here's a document: {document} \n\n---\n\n {add_selectbox}",
         }
     ]
 

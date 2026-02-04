@@ -26,7 +26,7 @@ for msg in st.session_state.messages:
 
 # Conversation buffer
 if prompt := st.chat_input("What is up?"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt, "system": "Always ask 'Do you want more info'"})
     with st.chat_message("user"):
         st.markdown(prompt)
     client = st.session_state.client
@@ -38,4 +38,3 @@ if prompt := st.chat_input("What is up?"):
             response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
 
-    

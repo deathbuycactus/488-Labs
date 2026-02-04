@@ -4,7 +4,7 @@ from openai import OpenAI
 # Show title and descr
 st.title("My Lab 3 Question Answering Chatbot")
 
-GPT = st.sidebar.select_box("Which Model?",
+GPT = st.sidebar.selectbox("Which Model?",
                             ("mini", "regular"))
 if GPT == "mini":
     model_choice = "gpt-4o-mini"
@@ -24,6 +24,7 @@ for msg in st.session_state.messages:
     chat_msg = st.chat_message(msg["role"])
     chat_msg.write(msg["content"])
 
+# Conversation buffer
 if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -36,3 +37,5 @@ if prompt := st.chat_input("What is up?"):
     with st.chat_message("assistant"):
             response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+    

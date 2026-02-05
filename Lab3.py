@@ -17,16 +17,29 @@ if 'client' not in st.session_state:
     st.session_state.client = OpenAI(api_key=api_key)
 
 if "messages" not in st.session_state:
-    st.session_state["messages"] = \
-        [{"role": "assistant", "content": "How can I help you?"}]
+    st.session_state["messages"] = [
+        {
+            "role": "system",
+            "content": "End first response: 'Do you want more information?' If they want more information continue asking if they want more until they so no and return to default prompt."
+        },
+        {
+            "role": "assistant",
+            "content": "How can I help you?"
+        }
+    ]
+
     
 for msg in st.session_state.messages:
+    if msg["role"] == "system":
+        continue
     chat_msg = st.chat_message(msg["role"])
     chat_msg.write(msg["content"])
 
 # Conversation buffer
 if prompt := st.chat_input("What is up?"):
-    st.session_state.messages.append({"role": "user", "system": "Always ask 'Do you want more info' after each prompt", "content": prompt})
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt})    
     with st.chat_message("user"):
         st.markdown(prompt)
     client = st.session_state.client

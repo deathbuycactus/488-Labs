@@ -20,7 +20,7 @@ if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
             "role": "system",
-            "content": "End first response: 'Do you want more information?' If they want more information continue asking if they want more until they so no and return to default prompt."
+            "content": "End first response: 'Do you want more information?' If they want more information continue asking if they want more until they so no and return to default prompt. Keep your answers simple enough such that a ten year old can understand them"
         },
         {
             "role": "assistant",

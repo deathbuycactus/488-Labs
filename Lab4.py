@@ -4,6 +4,9 @@ import sys
 import chromadb
 from pathlib import Path
 from PyPDF2 import PdfReader
+import google.generativeai as genai
+from bs4 import BeautifulSoup
+import requests
 
 # ChomaDB fix
 __import__('pysqlite3')
@@ -36,7 +39,7 @@ def add_to_collection(collection, text, file_name):
     )
 
 def extract_text_from_pdf(pdf_path):
-
+    
 def load_pdfs_to_colletion(folder_path, collection):
 
 if collection.count() == 0:
@@ -45,11 +48,7 @@ if collection.count() == 0:
 ### MAIN APP ###
 
 st.title('Lab 4: Chatbot using RAG')
-import streamlit as st
-from openai import OpenAI
-import google.generativeai as genai
-import BeautifulSoup
-import requests
+
 
 # Show title and descr
 st.title("My HW 3 Question Answering Chatbot")

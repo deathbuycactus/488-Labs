@@ -1,2 +1,10 @@
 streamlit
 openai
+PyPDF2
+requests
+beautifulsoup4
+lxml
+google-generativeai
+chromadb
+pysqlite3-binary
+protobuf==3.20

@@ -13,7 +13,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 # Create ChromaDB client
 chroma_client = chromadb.PersistentClient(path='./ChromaDB_for_Lab')
-collection = chroma_client.get_or_create_coillection('Lab4Collection')
+collection = chroma_client.get_or_create_collection('Lab4Collection')
 
 if 'openai_client' not in st.session_state:
     st.session_state.openai_client = OpenAI(api_key=st.secrets["lab_key"]["IST488"])
@@ -33,8 +33,9 @@ def add_to_collection(collection, text, file_name):
     # Add embedding and document to ChromaDB
     collection.add(
         documents=[text],
-        ids=file_name,
-        embeddings=[embedding]
+        ids=[file_name],
+        embeddings=[embedding],
+        metadatas=[{"source": file_name}]
     )
 
 def extract_text_from_pdf(pdf_path):
@@ -63,7 +64,7 @@ def load_pdfs_to_collection(folder_path, collection):
             add_to_collection(collection, text, file_name)
 
         except Exception as e:
-            print(f"Error processing {pdf_path.name}: {e}")
+            print(f"Error processing {pdf_path.name}: {e}") 
 
 # Check if collection is empty and load PDFs
 if collection.count() == 0:
@@ -83,7 +84,7 @@ if LLM == "ChatGPT":
 
 # VECTOR DATABASE COLLECTION VARIABLE
 if "Lab4_VectorDB" not in st.session_state:
-    st.session_state.Lab4_VectorDB = load_pdfs_to_collection("C:\Users\User\Downloads", collection)
+    st.session_state.Lab4_VectorDB = collection
 
 # Create GPT Client
 if 'client' not in st.session_state:

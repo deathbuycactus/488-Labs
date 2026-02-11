@@ -1,36 +1,40 @@
-import streamlit as st
-from openai import OpenAI
 import sys
-import chromadb
-from pathlib import Path
 from PyPDF2 import PdfReader
-from bs4 import BeautifulSoup
-import requests
+from pathlib import Path
 
-# ChomaDB fix
+# ChromaDB fix
 __import__('pysqlite3')
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-# Create ChromaDB client
+import streamlit as st
+from openai import OpenAI
+import chromadb
+
+# ==============================
+# Initialize OpenAI client
+# ==============================
+if 'openai_client' not in st.session_state:
+    st.session_state.openai_client = OpenAI(
+        api_key=st.secrets["lab_key"]["IST488"]
+    )
+
+# ==============================
+# Initialize ChromaDB
+# ==============================
 chroma_client = chromadb.PersistentClient(path='./ChromaDB_for_Lab')
 collection = chroma_client.get_or_create_collection('Lab4Collection')
 
-if 'openai_client' not in st.session_state:
-    st.session_state.openai_client = OpenAI(api_key=st.secrets["lab_key"]["IST488"])
-
+# ==============================
+# PDF Embedding Functions
+# ==============================
 def add_to_collection(collection, text, file_name):
-
-    # Create an embedding
+    """Embed a PDF document and store in ChromaDB."""
     client = st.session_state.openai_client
-    response = client.embeddings.create(
+    query_embed = client.embeddings.create(
         input=text,
         model='text-embedding-3-small'
     )
-
-    # Get the embedding
-    embedding = response.data[0].embedding
-
-    # Add embedding and document to ChromaDB
+    embedding = query_embed.data[0].embedding
     collection.add(
         documents=[text],
         ids=[file_name],
@@ -41,70 +45,51 @@ def add_to_collection(collection, text, file_name):
 def extract_text_from_pdf(pdf_path):
     reader = PdfReader(pdf_path)
     text = ""
-
     for page in reader.pages:
         page_text = page.extract_text()
-        if page_text != None:
+        if page_text is not None:
             text += page_text
-
     return text
 
 def load_pdfs_to_collection(folder_path, collection):
     folder = Path(folder_path)
-
     for pdf_path in folder.glob("*.pdf"):
         try:
-            # Extract text from PDF
             text = extract_text_from_pdf(pdf_path)
-
-            # Use filename as ID
             file_name = pdf_path.name
-
-            # Add to ChromaDB
             add_to_collection(collection, text, file_name)
-
         except Exception as e:
-            print(f"Error processing {pdf_path.name}: {e}") 
+            print(f"Error processing {pdf_path.name}: {e}")
 
-# Check if collection is empty and load PDFs
+# Load PDFs if collection is empty
 if collection.count() == 0:
-    loaded = load_pdfs_to_collection('./Lab-04-Data/', collection)
+    load_pdfs_to_collection('./SYLLABI/', collection)
 
-### MAIN APP ###
-
-# Show title and descr
+# ==============================
+# Streamlit UI
+# ==============================
 st.title('Lab 4: Chatbot using RAG')
-st.write("This is a question answering chatbot. -- Add more to descr later")
+st.write("This chatbot answers questions using your PDFs. External sources may be used if needed.")
 
-LLM = st.sidebar.selectbox("Which Model?",
-                            ("ChatGPT"))
+LLM = st.sidebar.selectbox("Which Model?", ("ChatGPT",))
+model_choice = "gpt-4o-mini" if LLM == "ChatGPT" else None
 
-if LLM == "ChatGPT":
-    model_choice = "gpt-4o-mini"
-
-# VECTOR DATABASE COLLECTION VARIABLE
+# ==============================
+# Session State
+# ==============================
 if "Lab4_VectorDB" not in st.session_state:
     st.session_state.Lab4_VectorDB = collection
 
-# Create GPT Client
-if 'client' not in st.session_state:
-    api_key = st.secrets["IST488"]
-    st.session_state.client = OpenAI(api_key=api_key)
-
-if "messages" not in st.session_state: 
+if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
             "role": "system",
-            "content": f"""
-            You are a question-answering assistant.
-            [CHANGE LINES BELOW] 
-            You will answer questions that pertain to {URL1_content} and/or {URL2_content}. Do not forget the contents of these websites.
-            End first response: 'Do you want more information?' 
-            If they want more information continue asking if they want more until they say no, then summarize the conversation. 
-            Keep your answers simple enough such that a ten year old can understand them.
-            If you reach 3 user-assistant exchanges, summarize the conversation so far, then replace the conversation history with that summary reponse.
-            [CHANGE LIVES ABOVE]
-            """
+            "content": (
+                "You are a question-answering assistant. "
+                "If the question cannot be answered using the PDF texts given, "
+                "you may use external sources. "
+                "Cite sources if used."
+            )
         },
         {
             "role": "assistant",
@@ -112,58 +97,54 @@ if "messages" not in st.session_state:
         }
     ]
 
+# Display chat history
 for msg in st.session_state.messages:
     if msg["role"] == "system":
         continue
     chat_msg = st.chat_message(msg["role"])
     chat_msg.write(msg["content"])
 
-# Conversation buffer
-if prompt := st.chat_input("What is up?"):
-    st.session_state.messages.append({
-        "role": "user",
-        "content": prompt})    
+# ==============================
+# Chat input + RAG retrieval
+# ==============================
+if prompt := st.chat_input("Ask a question:"):
+    # Add user message
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-    if LLM == "ChatGPT":
-        client = st.session_state.client
-        stream = client.chat.completions.create(
-            model = model_choice,
-            messages = st.session_state.messages, 
-            stream = True)
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
 
-
-
-#### QUERYING A COLLECTION -- ONLY USED FOR TESTING ####
-
-topic = st.sidebar.text_input('Topic', placeholder='Type your topic (e.g., GenAI)...')
-
-if topic:
     client = st.session_state.openai_client
-    response = client.embeddings.create(
-        input=topic,
-        model='text-embedding-3-small'
-    )
-    
-    # Get the embedding
-    query_embedding = response.data[0].embedding
 
-    # Get the text related to this question (this prompt)
+    # Step 1: Embed user question
+    query_embed = client.embeddings.create(
+        input=prompt,
+        model="text-embedding-3-small"
+    ).data[0].embedding
+
+    # Step 2: Query ChromaDB
     results = collection.query(
-        query_embedding=[query_embedding],
-        n_results=3 # Number of closest documents to return
+        query_embeddings=[query_embed],
+        n_results=3
     )
 
-    # Display the results
-    st.subheader(f"Results for: {topic}")
+    # Step 3: Combine retrieved documents
+    retrieved_text = "\n".join(results["documents"][0])
 
-    for i in range(len(results['documents'][0])):
-        doc = results['documents'][0][i]
-        doc_id = results['ids'][0][i]
-        st.write(f"**{i+1}, {doc_id}**")
+    # Step 4: Inject context into messages
+    context_message = {
+        "role": "system",
+        "content": f"Use this retrieved context to answer the user:\n{retrieved_text}"
+    }
+    messages_with_context = st.session_state.messages + [context_message]
 
-else:
-    st.info('Enter a topic in the sidebar to search the collection')
+    # Step 5: Call GPT
+    stream = client.chat.completions.create(
+        model=model_choice,
+        messages=messages_with_context,
+        stream=True
+    )
+
+    # Step 6: Display GPT response
+    with st.chat_message("assistant"):
+        response = st.write_stream(stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})

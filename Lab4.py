@@ -4,7 +4,6 @@ import sys
 import chromadb
 from pathlib import Path
 from PyPDF2 import PdfReader
-import google.generativeai as genai
 from bs4 import BeautifulSoup
 import requests
 
@@ -49,74 +48,61 @@ def extract_text_from_pdf(pdf_path):
 
     return text
 
-def load_pdfs_to_colletion(folder_path, collection):
-    
-    return
+def load_pdfs_to_collection(folder_path, collection):
+    folder = Path(folder_path)
+
+    for pdf_path in folder.glob("*.pdf"):
+        try:
+            # Extract text from PDF
+            text = extract_text_from_pdf(pdf_path)
+
+            # Use filename as ID
+            file_name = pdf_path.name
+
+            # Add to ChromaDB
+            add_to_collection(collection, text, file_name)
+
+        except Exception as e:
+            print(f"Error processing {pdf_path.name}: {e}")
+
 # Check if collection is empty and load PDFs
 if collection.count() == 0:
-    loaded = load_pdfs_to_colletion('./Lab-04-Data/', collection)
+    loaded = load_pdfs_to_collection('./Lab-04-Data/', collection)
 
 ### MAIN APP ###
 
-st.title('Lab 4: Chatbot using RAG')
-
-
 # Show title and descr
-st.title("My HW 3 Question Answering Chatbot")
-st.write("This is a question answering chatbot. It takes up to two URLs and will attempt to answer questions you ask about them. " \
-"After your 4th prompt or after you respond that you do not want more information, it will summarize the interaction you had with it.")
+st.title('Lab 4: Chatbot using RAG')
+st.write("This is a question answering chatbot. -- Add more to descr later")
 
 LLM = st.sidebar.selectbox("Which Model?",
-                            ("ChatGPT", "Gemini"))
-def read_url_content(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status() # Raise an exception for HTTP errors
-        soup = BeautifulSoup(response.content, 'html.parser')
-        return soup.get_text()
-    except requests.RequestException as e:
-        print(f"Error reading {url}: {e}")
-        return None 
-    
-URL1 = URL1 = st.text_input(
-    "Enter a URL",
-    placeholder="https://example1.com"
-)
-
-URL1_content = read_url_content(URL1)
-
-URL2 = URL2 = st.text_input(
-    "Enter a URL",
-    placeholder="https://example2.com"
-)
-
-URL2_content = read_url_content(URL2)
-
+                            ("ChatGPT"))
 
 if LLM == "ChatGPT":
     model_choice = "gpt-4o-mini"
-else:
-    model_choice = "gemini-2.5-pro"
+
+# VECTOR DATABASE COLLECTION VARIABLE
+if "Lab4_VectorDB" not in st.session_state:
+    st.session_state.Lab4_VectorDB = load_pdfs_to_collection("C:\Users\User\Downloads", collection)
 
 # Create GPT Client
-if LLM == "ChatGPT" and 'client' not in st.session_state:
+if 'client' not in st.session_state:
     api_key = st.secrets["IST488"]
     st.session_state.client = OpenAI(api_key=api_key)
-if LLM == "Gemini":
-    genai.configure(api_key=st.secrets["IST488_G"])
 
-
-if "messages" not in st.session_state:
+if "messages" not in st.session_state: 
     st.session_state["messages"] = [
         {
             "role": "system",
             "content": f"""
             You are a question-answering assistant.
+            [CHANGE LINES BELOW] 
             You will answer questions that pertain to {URL1_content} and/or {URL2_content}. Do not forget the contents of these websites.
             End first response: 'Do you want more information?' 
             If they want more information continue asking if they want more until they say no, then summarize the conversation. 
             Keep your answers simple enough such that a ten year old can understand them.
             If you reach 3 user-assistant exchanges, summarize the conversation so far, then replace the conversation history with that summary reponse.
+            [CHANGE LIVES ABOVE]
             """
         },
         {
@@ -125,8 +111,6 @@ if "messages" not in st.session_state:
         }
     ]
 
-
-    
 for msg in st.session_state.messages:
     if msg["role"] == "system":
         continue
@@ -149,41 +133,6 @@ if prompt := st.chat_input("What is up?"):
         with st.chat_message("assistant"):
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
-    elif LLM == "Gemini":
-        model = genai.GenerativeModel(model_choice)
-        history = "\n".join(
-            f"{m['role'].upper()}: {m['content']}"
-            for m in st.session_state.messages
-            if m["role"] != "system"
-        )
-        
-        gemini_prompt = f"""
-            You are a question-answering assistant.
-
-            You will answer questions that pertain to {URL1_content} and/or {URL2_content}. Do not forget the contents of these websites.
-            
-            Conversation so far:
-            {history}
-
-            Rules:
-            End first response: 'Do you want more information?' 
-            If they want more information continue asking if they want more until they say no, then summarize the conversation. 
-            Keep your answers simple enough such that a ten year old can understand them.
-            If you reach 3 user-assistant exchanges, answer the user's question and provide a summary of the conversation as part of your response.
-            
-            User question:
-            {prompt}
-            """
-        response = model.generate_content(gemini_prompt)
-        assistant_text = response.text
-        with st.chat_message("assistant"):
-            st.write(assistant_text)
-
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": assistant_text
-        })
-
 
 
 

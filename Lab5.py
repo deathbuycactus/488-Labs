@@ -30,4 +30,4 @@ def get_current_weather(location, api_key, units='imperial'):
             'humidity': round(humidity, 2)
             }
 
-get_current_weather("Syracuse, NY, US", weather_key))
+print(get_current_weather("Syracuse, NY, US", weather_key))

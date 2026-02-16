@@ -1,8 +1,12 @@
 import requests
+import tomllib
+import streamlit as st
+
+weather_key = st.secrets["weather"]["weather_key"]
 
 def get_current_weather(location, api_key, units='imperial'):
     url = (
-        f'https://api.openweathermap.org/data/w.5/weather'
+        f'https://api.openweathermap.org/data/2.5/weather'
         f'?q={location}&appid={api_key}&units={units}'
     )
     response = requests.get(url)
@@ -11,7 +15,7 @@ def get_current_weather(location, api_key, units='imperial'):
     if response.status_code == 404:
         error_message = response.json().get('message')
         raise Exception(f'404 error: {error_message}')
-    data = response.json
+    data = response.json()
     temp = data['main']['temp']
     feels_like = data['main']['feels_like']
     temp_min = data['main']['temp_min']
@@ -25,3 +29,5 @@ def get_current_weather(location, api_key, units='imperial'):
             'temp_max': round(temp_max, 2),
             'humidity': round(humidity, 2)
             }
+
+get_current_weather("Syracuse, NY, US", weather_key))

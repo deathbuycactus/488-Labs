@@ -83,8 +83,9 @@ tools = [
 # User input
 user_input = st.chat_input("Enter city, state, and country name here")
 
-if user_input and user_input.strip():
-    
+
+if user_input is not None:
+
     st.session_state.messages.append({"role":"user","content":user_input})
     with st.chat_message("user"):
         st.write(user_input)
@@ -141,7 +142,6 @@ if user_input and user_input.strip():
 
 
         reply = final.choices[0].message.content
-
     else:
         reply = msg.content
 

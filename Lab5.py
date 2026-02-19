@@ -85,7 +85,10 @@ user_input = st.chat_input("Enter city, state, and country name here")
 
 
 if user_input is not None:
+    user_input = user_input.strip()
 
+    if user_input == "":
+        user_input = "Syracuse, NY, US"
     st.session_state.messages.append({"role":"user","content":user_input})
     with st.chat_message("user"):
         st.write(user_input)
@@ -106,7 +109,8 @@ if user_input is not None:
 
         tool_call = msg.tool_calls[0]
         args = json.loads(tool_call.function.arguments or "{}")
-        location = args.get("location", "Syracuse, NY, US")
+        location = args.get("location") or "Syracuse, NY, US"
+
 
         weather = get_current_weather(location, weather_key)
 

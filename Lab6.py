@@ -2,50 +2,33 @@ import streamlit as st
 from openai import OpenAI
 from pydantic import BaseModel
 
-# ---------------------------
-# Setup
-# ---------------------------
 st.set_page_config(page_title="Lab 6 - OpenAI Agent", layout="wide")
 
-# Initialize OpenAI client
 api_key = st.secrets['lab_key']['IST488']
 client = OpenAI(api_key=api_key)
 
-# Session state for conversation chaining
 if "last_response_id" not in st.session_state:
     st.session_state.last_response_id = None
 
-# ---------------------------
-# Sidebar خيارات
-# ---------------------------
 st.sidebar.title("Settings")
 
 use_structured = st.sidebar.checkbox("Return structured summary")
 use_streaming = st.sidebar.checkbox("Stream response")
 st.sidebar.caption("⚡ Web search is enabled for up-to-date answers.")
 
-# ---------------------------
-# Structured Output Model
-# ---------------------------
 class ResearchSummary(BaseModel):
     main_answer: str
     key_facts: list[str]
     source_hint: str
 
-# ---------------------------
-# UI
-# ---------------------------
 st.title("🔎 OpenAI Research Agent")
 
 user_question = st.text_input("Ask a question:")
 
-# ---------------------------
-# Function: Make API Call
-# ---------------------------
 def get_response(prompt, previous_id=None):
     if use_structured:
         response = client.responses.parse(
-            model="gpt-4o",
+            model="gpt-4.1",
             instructions="You are a helpful research assistant. Cite your sources.",
             input=prompt,
             tools=[{"type": "web_search_preview"}],
@@ -56,12 +39,13 @@ def get_response(prompt, previous_id=None):
 
     elif use_streaming:
         stream = client.responses.stream(
-            model="gpt-4o",
+            model="gpt-4.1",
             instructions="You are a helpful research assistant. Cite your sources.",
             input=prompt,
             tools=[{"type": "web_search_preview"}],
             previous_response_id=previous_id,
         )
+
         full_text = ""
         placeholder = st.empty()
 
@@ -71,21 +55,10 @@ def get_response(prompt, previous_id=None):
                 placeholder.markdown(full_text)
 
         final_response = stream.get_final_response()
+        final_response.output_text = full_text
+        
         return final_response
 
-    else:
-        response = client.responses.create(
-            model="gpt-4o",
-            instructions="You are a helpful research assistant. Cite your sources.",
-            input=prompt,
-            tools=[{"type": "web_search_preview"}],
-            previous_response_id=previous_id,
-        )
-        return response
-
-# ---------------------------
-# First Question (Part A + C)
-# ---------------------------
 if user_question:
     response = get_response(user_question)
 
@@ -107,9 +80,7 @@ if user_question:
     # Save response ID for chaining
     st.session_state.last_response_id = response.id
 
-# ---------------------------
-# Follow-up (Part B)
-# ---------------------------
+
 if st.session_state.last_response_id:
     follow_up = st.text_input("Ask a follow-up question:")
 

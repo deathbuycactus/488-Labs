@@ -105,6 +105,10 @@ Return ONLY this format:
         except:
             return []
 
+    if isinstance(new_memories, list):
+        return new_memories
+    
+    return []
 def update_memories(user_input, assistant_response):
     current_memories = load_memories()
     new_memories = extract_new_memories(user_input, assistant_response)
@@ -152,3 +156,5 @@ if user_input:
         st.write(assistant_response)
 
     update_memories(user_input, assistant_response)
+
+    # Memory works even when you switch the LLM because the memories are stored in a JSON file which we have a tool to inject that file back into system memory, which is not LLM context window specific
